@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Activity Hub – Explore (v24)</title>
+  <title>Activity Hub – Explore (v25)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -693,7 +693,6 @@
         renderGrid(sortList(prjAll, DIR_SORT), 'projects-grid', 'projects-empty', null, cardHTML);
         $('#section-orgs').classList.add('hidden'); $('#section-biz').classList.add('hidden');
       } else if (VIEW_MODE==='events') {
-        // Duplicate each ORG into an event card
         renderGrid(orgsAll, 'events-grid', 'events-empty', null, eventCardHTML);
       }
 
@@ -910,8 +909,8 @@
       const recents = renderRecentsOnlyMobile();
       return popSection + recents;
     }
-    function mOpenMenu(){ if(!mMenu) return; mMenu.classList.remove('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','true'); mRenderMenu(); document.addEventListener('mousedown', mOutsideClose); }
-    function mCloseMenu(){ if(!mMenu) return; mMenu.classList.add('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','false'); mActiveIndex=-1; mItems=[]; if(mResultsEl) mResultsEl.innerHTML=''; document.removeEventListener('mousedown', mOutsideClose); }
+    function mOpenMenu(){ if(!mMenu) return; mMenu.classList.remove('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','true'); mRenderMenu(); document.addEventListener('mousedown', mOutsideClose); document.addEventListener('touchstart', mOutsideClose, {passive:true}); }
+    function mCloseMenu(){ if(!mMenu) return; mMenu.classList.add('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','false'); mActiveIndex=-1; mItems=[]; if(mResultsEl) mResultsEl.innerHTML=''; document.removeEventListener('mousedown', mOutsideClose); document.removeEventListener('touchstart', mOutsideClose); }
     function mOutsideClose(e){ if(!mSearchBox || !mMenu) return; if(!mSearchBox.contains(e.target)) mCloseMenu(); }
 
     function mRenderMenu(){
@@ -932,7 +931,7 @@
       mResultsEl.innerHTML = html;
       mItems = $$('.search-item', mResultsEl);
       mItems.forEach((el)=>{
-        el.addEventListener('click', (e)=>{ e.preventDefault(); const slug = el.getAttribute('data-open'); if(slug){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(slug); pushRecent(q); } });
+        el.addEventListener('click', (e)=>{ e.preventDefault(); const slug = el.getAttribute('data-open'); if(slug){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(slug); pushRecent(mSearchInput ? mSearchInput.value : ''); } });
       });
       $$('.m-recent-btn', mResultsEl).forEach(btn=>{
         btn.addEventListener('click', ()=>{ if(mSearchInput){ mSearchInput.value = btn.getAttribute('data-q'); mSearchInput.focus(); mRenderMenu(); } });
@@ -1017,7 +1016,7 @@
       if(e.key==='/' && !isTyping){ e.preventDefault(); if(searchInput){ searchInput.focus(); openMenu(); } }
     });
 
-    // Mobile search toggle
+    // ---------- Mobile search toggle ----------
     const mobileSearchBtn = document.getElementById('mobile-search-btn');
     if (mobileSearchBtn) {
       mobileSearchBtn.addEventListener('click', () => {
@@ -1041,18 +1040,32 @@
       });
     }
 
-    // ----- MOBILE input wiring -----
-    if (mSearchInput){
-      mSearchInput.addEventListener('keydown', (e)=>{
-        if(e.key==='Enter'){
-          const q = mSearchInput.value.trim();
-          const { pool } = searchData(q);
-          const exact = pool.filter(o => o.name.toLowerCase() === q.toLowerCase());
-          if(exact.length === 1){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(exact[0].slug); pushRecent(q); }
-          else if(q){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToSearch(q, searchScope); pushRecent(q); }
-        }
-      });
-    }
+    // ----- MOBILE input wiring (FIXED live autocomplete) -----
+    ;(()=>{
+      const wire = ()=>{
+        if(!mSearchInput) return;
+        const liveEvents = ['focus','click','input','keyup','change','compositionend'];
+        liveEvents.forEach(evt=>{
+          mSearchInput.addEventListener(evt, ()=>{
+            if(!mMenu) return;
+            if(mMenu.classList.contains('hidden')) mOpenMenu();
+            else mRenderMenu();
+          }, {passive:true});
+        });
+        // Enter key behavior
+        mSearchInput.addEventListener('keydown', (e)=>{
+          if(e.key==='Enter'){
+            const q = (mSearchInput.value || '').trim();
+            const { pool } = searchData(q);
+            const exact = pool.filter(o => o.name.toLowerCase() === q.toLowerCase());
+            if(exact.length === 1){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(exact[0].slug); pushRecent(q); }
+            else if(q){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToSearch(q, searchScope); pushRecent(q); }
+          }
+        });
+      };
+      wire();
+    })();
+
     mFooterClear && mFooterClear.addEventListener('click', ()=>{ clearRecents(); mRenderMenu(); });
 
     // ---------- Search results page ----------
