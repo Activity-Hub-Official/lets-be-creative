@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Activity Hub – Explore (v24)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ah: {50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a8a'},
+          },
+          boxShadow:{ card:'0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06)'},
+          fontFamily:{ sans:['Inter','ui-sans-serif','system-ui','Segoe UI','Helvetica','Arial','Apple Color Emoji','Segoe UI Emoji'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    .ah-grad{background-image:linear-gradient(135deg,#2563eb 0%,#14b8a6 100%)}
+    .ah-chip[data-selected="true"]{background:#111827;color:#fff;border-color:#111827}
+    .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+    .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .fade-in{opacity:0;transform:translateY(4px);transition:opacity .2s ease,transform .2s ease}
+    .fade-in.show{opacity:1;transform:none}
+    .nav-active{background:#f3f4f6;color:#111827;font-weight:600}
+    .search-menu{position:absolute;left:0;right:0;top:100%;margin-top:.5rem;z-index:50}
+    .search-item[aria-selected="true"]{background-color:#f3f4f6}
+    .search-badge{font-size:11px;border:1px solid rgb(229 231 235);background:#f8fafc;border-radius:9999px;padding:.125rem .5rem}
+    .menu{position:absolute;right:0;top:100%;margin-top:.5rem;min-width:12rem;z-index:60}
+    .menu-item{display:block;width:100%;text-align:left}
+  </style>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900 overflow-x-hidden">
+  <div class="flex w-full">
+    <!-- ====== SIDEBAR ====== -->
+    <aside class="hidden lg:flex lg:w-64 xl:w-72 lg:shrink-0 lg:sticky lg:top-0 lg:self-start lg:h-[100dvh] lg:overflow-y-auto border-r border-gray-200 bg-white flex-col">
+      <div class="flex items-center gap-3 p-4">
+        <div class="w-9 h-9 grid place-items-center rounded-xl ah-grad text-white font-bold">AH</div>
+        <span class="font-semibold text-gray-800">Activity Hub</span>
+      </div>
+      <nav class="px-2 py-3 space-y-1 text-sm">
+        <a href="?view=explore" data-route="explore" class="flex items-center gap-3 px-3 py-2 rounded-lg nav-active"><i class="fa-solid fa-compass text-[18px]"></i> Explore</a>
+        <div class="h-px bg-gray-100 my-2"></div>
+        <a href="?view=orgs" data-route="orgs" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-users text-[18px]"></i> Organizations</a>
+        <a href="?view=businesses" data-route="businesses" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-briefcase text-[18px]"></i> Businesses</a>
+        <a href="?view=projects" data-route="projects" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-diagram-project text-[18px]"></i> Projects</a>
+        <a href="?view=events" data-route="events" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-calendar-days text-[18px]"></i> Events</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-school text-[18px]"></i> Schools</a>
+      </nav>
+      <div class="mt-auto p-4">
+        <div class="rounded-xl border border-gray-200 p-4 shadow-card">
+          <div class="text-sm text-gray-700 font-medium">1 profile view</div>
+          <div class="text-xs text-gray-500">in the past 90 days</div>
+        </div>
+        <button class="mt-3 w-full rounded-lg border border-gray-200 py-2 text-sm hover:bg-gray-50"><i class="fa-brands fa-google-play mr-2"></i> Get the app</button>
+      </div>
+    </aside>
+
+    <!-- Mobile sidebar drawer -->
+    <div id="sidebar-drawer" class="lg:hidden fixed inset-0 z-40 hidden" aria-hidden="true">
+      <button id="drawer-overlay" class="absolute inset-0 bg-black/40 opacity-0 transition-opacity"></button>
+      <aside id="drawer-panel" class="absolute left-0 top-0 h-full w-72 max-w-[85vw] bg-white border-r border-gray-200 shadow-xl -translate-x-full transition-transform duration-300">
+        <div class="flex items-center justify-between p-4">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 grid place-items-center rounded-xl ah-grad text-white font-bold">AH</div>
+            <span class="font-semibold text-gray-800">Activity Hub</span>
+          </div>
+          <button id="close-drawer" class="p-2 rounded-md hover:bg-gray-100" aria-label="Close sidebar"><i class="fa-solid fa-xmark text-[18px]"></i></button>
+        </div>
+        <nav class="px-2 pb-3 space-y-1 text-sm">
+          <a href="?view=explore" data-route="explore" class="flex items-center gap-3 px-3 py-2 rounded-lg nav-active"><i class="fa-solid fa-compass text-[18px]"></i> Explore</a>
+          <div class="h-px bg-gray-100 my-2"></div>
+          <a href="?view=orgs" data-route="orgs" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-users text-[18px]"></i> Organizations</a>
+          <a href="?view=businesses" data-route="businesses" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-briefcase text-[18px]"></i> Businesses</a>
+          <a href="?view=projects" data-route="projects" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-diagram-project text-[18px]"></i> Projects</a>
+          <a href="?view=events" data-route="events" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-calendar-days text-[18px]"></i> Events</a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50"><i class="fa-solid fa-school text-[18px]"></i> Schools</a>
+        </nav>
+        <div class="mt-auto p-4 border-t border-gray-100">
+          <div class="rounded-xl border border-gray-200 p-4 shadow-card mb-3">
+            <div class="text-sm text-gray-700 font-medium">1 profile view</div>
+            <div class="text-xs text-gray-500">in the past 90 days</div>
+          </div>
+          <button class="w-full rounded-lg border border-gray-200 py-2 text-sm hover:bg-gray-50"><i class="fa-brands fa-google-play mr-2"></i> Get the app</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- ====== MAIN ====== -->
+    <main class="flex-1 min-h-screen min-w-0">
+      <!-- Top bar -->
+      <div class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-gray-200">
+        <div class="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
+          <div class="flex items-center gap-3">
+            <button id="open-sidebar-btn" class="p-2 rounded-md hover:bg-gray-100 lg:hidden" aria-label="Open sidebar"><i class="fa-solid fa-bars text-[20px]"></i></button>
+            <div class="w-8 h-8 grid place-items-center rounded-lg ah-grad text-white font-bold lg:hidden">AH</div>
+            <div class="hidden lg:flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-compass text-[18px] text-ah-600"></i> Explore</div>
+          </div>
+
+          <!-- SEARCH + MENU (desktop) -->
+          <div class="flex-1 mx-2 hidden md:flex justify-center min-w-0">
+            <div class="relative w-full max-w-lg" id="searchbox" role="combobox" aria-haspopup="listbox" aria-owns="search-menu" aria-expanded="false">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[14px]"></i>
+
+              <!-- SCOPE PILL (in-input) -->
+              <span id="scope-pill" class="hidden absolute left-8 top-1/2 -translate-y-1/2"></span>
+
+              <input id="global-search" type="search" aria-autocomplete="list" aria-controls="search-menu"
+                     class="w-full rounded-full bg-gray-50 border border-gray-200 pl-10 pr-24 py-2.5 text-sm placeholder-gray-400 shadow-sm focus:border-ah-600 focus:ring-2 focus:ring-ah-500/20 outline-none transition"
+                     placeholder="Search clubs, businesses, projects…" />
+              <button id="clear-search" class="hidden absolute right-9 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600" aria-label="Clear"><i class="fa-solid fa-xmark"></i></button>
+              <span class="pointer-events-none hidden sm:flex items-center justify-center absolute right-3 top-1/2 -translate-y-1/2 select-none rounded-md border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] tracking-wider text-gray-500 shadow-sm">/</span>
+
+              <!-- Dropdown menu -->
+              <div id="search-menu" class="search-menu hidden">
+                <div class="rounded-xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+                  <div class="flex items-center gap-1 p-2 border-b border-gray-100">
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50 font-medium" data-scope="all">All</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="orgs"><i class="fa-solid fa-users mr-1.5"></i> Orgs</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="businesses"><i class="fa-solid fa-briefcase mr-1.5"></i> Businesses</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="projects"><i class="fa-solid fa-diagram-project mr-1.5"></i> Projects</button>
+                    <div class="ml-auto text-[11px] text-gray-500 pr-2">↑/↓ to navigate • Enter to open</div>
+                  </div>
+                  <div id="search-results" role="listbox" class="max-h-[60vh] overflow-auto py-2"></div>
+                  <div id="search-footer" class="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs text-gray-500">
+                    <div>Press <span class="search-badge">Esc</span> to close • <span class="search-badge">Enter</span> to open</div>
+                    <button id="search-clear-recents" class="text-gray-500 hover:text-gray-700 hidden">Clear recent</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right controls -->
+          <div class="ml-auto flex items-center gap-2">
+            <button id="mobile-search-btn" class="p-2 rounded-md hover:bg-gray-100 md:hidden" aria-label="Search"><i class="fa-solid fa-magnifying-glass text-[18px]"></i></button>
+            <button class="relative p-2 rounded-md hover:bg-gray-100" aria-label="Notifications"><i class="fa-regular fa-bell text-[20px]"></i><span class="absolute -top-0.5 -right-0.5 text-[10px] bg-red-500 text-white rounded-full w-4 h-4 grid place-items-center">3</span></button>
+            <div class="w-8 h-8 rounded-full bg-gray-200 grid place-items-center text-xs font-semibold">SK</div>
+          </div>
+        </div>
+
+        <!-- Mobile inline search + full menu -->
+        <div id="mobile-search" class="md:hidden hidden border-t border-gray-200 bg-white">
+          <div class="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-2">
+            <div id="m-searchbox" class="relative" role="combobox" aria-haspopup="listbox" aria-owns="m-search-menu" aria-expanded="false">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[14px]"></i>
+              <!-- mobile scope pill -->
+              <span id="m-scope-pill" class="hidden absolute left-8 top-1/2 -translate-y-1/2"></span>
+
+              <input id="mobile-global-search" type="search"
+                     class="w-full rounded-full bg-gray-50 border border-gray-200 pl-10 pr-10 py-2.5 text-sm placeholder-gray-400 shadow-sm focus:border-ah-600 focus:ring-2 focus:ring-ah-500/20 outline-none transition"
+                     placeholder="Search clubs, businesses, projects…" />
+
+              <!-- Mobile dropdown (same structure) -->
+              <div id="m-search-menu" class="search-menu hidden">
+                <div class="rounded-xl border border-gray-200 bg-white shadow-2xl overflow-hidden">
+                  <div class="flex items-center gap-1 p-2 border-b border-gray-100">
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50 font-medium" data-scope="all">All</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="orgs"><i class="fa-solid fa-users mr-1.5"></i> Orgs</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="businesses"><i class="fa-solid fa-briefcase mr-1.5"></i> Businesses</button>
+                    <button class="search-tab px-3 py-1.5 text-sm rounded-md hover:bg-gray-50" data-scope="projects"><i class="fa-solid fa-diagram-project mr-1.5"></i> Projects</button>
+                    <div class="ml-auto text-[11px] text-gray-500 pr-2">Tap a result • Enter to open</div>
+                  </div>
+                  <div id="m-search-results" role="listbox" class="max-h-[70vh] overflow-auto py-2"></div>
+                  <div id="m-search-footer" class="flex items-center justify-between px-3 py-2 border-t border-gray-100 text-xs text-gray-500">
+                    <div>Tap outside to close</div>
+                    <button id="m-search-clear-recents" class="text-gray-500 hover:text-gray-700 hidden">Clear recent</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ====== DIRECTORY (Explore / Category / Events) ====== -->
+      <div id="view-directory" class="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Events-only banner -->
+        <div id="events-banner" class="hidden rounded-xl border border-amber-200 bg-amber-50 text-amber-900 p-4">
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5">
+              <i class="fa-solid fa-triangle-exclamation text-[18px]"></i>
+            </div>
+            <p class="text-sm leading-6">
+              <strong>Heads Up</strong> — These events are automatically generated from St. John’s public scheduling data and may not always reflect a club’s most current plans.
+              Clubs will soon be able to manage their own pages directly on Activity Hub, which will make listings more accurate over time.
+              In the meantime, we recommend checking the organization’s social media or contacting them directly if an email is provided.
+            </p>
+          </div>
+        </div>
+
+        <!-- Only on Explore -->
+        <div id="explore-bars" class="space-y-6">
+          <div class="bg-white border border-gray-200 rounded-xl shadow-card p-4 flex items-start gap-3">
+            <div class="w-9 h-9 rounded-md ah-grad text-white grid place-items-center text-xs font-bold">SJU</div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold">St. John's University — Queens</div>
+              <div class="text-sm text-gray-500">Access campus resources and verified orgs</div>
+            </div>
+          </div>
+          <div class="bg-ah-50 rounded-xl border border-ah-100 p-4 flex items-center gap-3">
+            <div class="w-9 h-9 grid place-items-center rounded-full bg-white border border-ah-100">
+              <i class="fa-solid fa-circle-check text-ah-700 text-[18px]"></i>
+            </div>
+            <div class="flex-1 text-sm text-ah-900">Claim your club’s page and get a verified badge.</div>
+            <button class="px-3 py-1.5 rounded-md bg-white border border-ah-200 text-sm font-medium hover:bg-ah-100">Claim now</button>
+          </div>
+        </div>
+
+        <!-- Browse -->
+        <section>
+          <div class="flex items-center justify-between mb-3"><h2 class="text-lg font-semibold">Browse</h2></div>
+          <div id="browse-chips" class="flex gap-2 items-center -mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto md:overflow-x-visible no-scrollbar pb-1 flex-nowrap md:flex-wrap max-w-full">
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0" data-selected="true">All</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Academic</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Professional Development</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Service / Volunteering</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Sports &amp; Athletics</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Religious / Spiritual</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Cultural / Identity-Based</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Arts &amp; Media</button>
+            <button class="ah-chip px-3 py-2 rounded-full border border-gray-200 bg-white text-sm shrink-0">Political / Activism</button>
+          </div>
+        </section>
+
+        <!-- Sections -->
+        <section id="section-orgs">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="title-orgs" class="text-lg font-semibold">Top organizations</h2>
+            <div id="sort-orgs-wrap" class="relative hidden">
+              <button id="sort-orgs-btn" class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-up-wide-short"></i><span id="sort-orgs-label">Popular</span>
+              </button>
+              <div id="sort-orgs-menu" class="menu hidden bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="relevance">Relevance</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="az">A → Z</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="za">Z → A</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="popular">Popular</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="verified">Verified first</button>
+              </div>
+            </div>
+          </div>
+          <div id="orgs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <div id="orgs-empty" class="hidden text-sm text-gray-500">No organizations match the current filter.</div>
+        </section>
+
+        <section id="section-biz">
+          <div class="flex items-center justify-between mb-3 mt-2">
+            <h2 id="title-biz" class="text-lg font-semibold">Top businesses</h2>
+            <div id="sort-biz-wrap" class="relative hidden">
+              <button id="sort-biz-btn" class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-up-wide-short"></i><span id="sort-biz-label">Popular</span>
+              </button>
+              <div id="sort-biz-menu" class="menu hidden bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="relevance">Relevance</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="az">A → Z</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="za">Z → A</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="popular">Popular</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="verified">Verified first</button>
+              </div>
+            </div>
+          </div>
+          <div id="biz-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <div id="biz-empty" class="hidden text-sm text-gray-500">No businesses found in the data.</div>
+        </section>
+
+        <section id="section-projects">
+          <div class="flex items-center justify-between mb-3 mt-2">
+            <h2 id="title-projects" class="text-lg font-semibold">Top projects</h2>
+            <div id="sort-projects-wrap" class="relative hidden">
+              <button id="sort-projects-btn" class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-up-wide-short"></i><span id="sort-projects-label">Popular</span>
+              </button>
+              <div id="sort-projects-menu" class="menu hidden bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="relevance">Relevance</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="az">A → Z</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="za">Z → A</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="popular">Popular</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="verified">Verified first</button>
+              </div>
+            </div>
+          </div>
+          <div id="projects-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <div id="projects-empty" class="hidden text-sm text-gray-500">No projects found in the data.</div>
+        </section>
+
+        <!-- EVENTS (visible only in Events view) -->
+        <section id="section-events" class="hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h2 id="title-events" class="text-lg font-semibold">Events</h2>
+          </div>
+          <div id="events-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+          <div id="events-empty" class="hidden text-sm text-gray-500">No events to show.</div>
+        </section>
+      </div>
+
+      <!-- ====== SEARCH RESULTS VIEW ====== -->
+      <div id="view-search" class="hidden">
+        <div class="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 id="srch-title" class="text-xl font-semibold"></h1>
+              <div class="mt-2 flex gap-2">
+                <button class="srch-scope px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white" data-scope="all">All</button>
+                <button class="srch-scope px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white" data-scope="orgs"><i class="fa-solid fa-users mr-1.5"></i>Orgs</button>
+                <button class="srch-scope px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white" data-scope="businesses"><i class="fa-solid fa-briefcase mr-1.5"></i>Businesses</button>
+                <button class="srch-scope px-3 py-1.5 text-sm rounded-full border border-gray-200 bg-white" data-scope="projects"><i class="fa-solid fa-diagram-project mr-1.5"></i>Projects</button>
+              </div>
+            </div>
+
+            <div class="relative">
+              <button id="srch-sort-btn" class="flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                <i class="fa-solid fa-arrow-up-wide-short"></i><span id="srch-sort-label">Relevance</span>
+              </button>
+              <div id="srch-sort-menu" class="menu hidden bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden">
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="relevance">Relevance</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="az">A → Z</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="za">Z → A</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="popular">Popular</button>
+                <button class="menu-item px-3 py-2 hover:bg-gray-50" data-sort="verified">Verified first</button>
+              </div>
+            </div>
+          </div>
+
+          <section id="rs-orgs">
+            <h2 class="text-lg font-semibold mb-3" id="rs-orgs-title">Organizations</h2>
+            <div id="rs-orgs-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            <div id="rs-orgs-empty" class="hidden text-sm text-gray-500">No organizations match.</div>
+          </section>
+
+          <section id="rs-biz">
+            <h2 class="text-lg font-semibold mb-3" id="rs-biz-title">Businesses</h2>
+            <div id="rs-biz-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            <div id="rs-biz-empty" class="hidden text-sm text-gray-500">No businesses match.</div>
+          </section>
+
+          <section id="rs-projects">
+            <h2 class="text-lg font-semibold mb-3" id="rs-projects-title">Projects</h2>
+            <div id="rs-projects-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+            <div id="rs-projects-empty" class="hidden text-sm text-gray-500">No projects match.</div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ====== FULLPAGE DETAIL VIEW ====== -->
+      <div id="view-detail" class="hidden">
+        <div class="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-6">
+          <nav class="mb-4 text-sm">
+            <a href="./" id="back" class="inline-flex items-center gap-1 text-ah-700 hover:underline">
+              <i class="fa-solid fa-arrow-left"></i> All listings
+            </a>
+          </nav>
+
+          <article class="rounded-xl border border-gray-200 bg-white shadow-card">
+            <div class="p-6 md:p-8">
+              <div class="flex items-start gap-5">
+                <img id="d_logo" class="w-20 h-20 rounded-xl object-contain bg-white p-1 ring-1 ring-gray-200 hidden" alt="">
+                <div id="d_fallback" class="w-20 h-20 rounded-xl grid place-items-center text-white text-lg font-semibold ring-1 ring-gray-200"></div>
+
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <h1 id="d_name" class="text-2xl font-semibold tracking-tight"></h1>
+                      <div class="mt-2 flex flex-wrap gap-2">
+                        <span id="d_theme"   class="hidden inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200"></span>
+                        <span id="d_industry"class="hidden inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200"></span>
+                        <span id="d_members" class="hidden inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200"><i class="fa-solid fa-users text-[10px] mr-1"></i><span></span></span>
+                        <span id="d_verified"class="hidden inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-sky-50 border border-sky-200 text-sky-700"><i class="fa-solid fa-circle-check mr-1"></i>Verified</span>
+                      </div>
+                    </div>
+                    <button id="shareBtn" class="shrink-0 inline-flex items-center gap-2 h-9 px-3 rounded-lg border border-gray-200 text-sm hover:bg-gray-50">
+                      <i class="fa-solid fa-share-nodes"></i><span class="hidden sm:inline">Share</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-6 pt-4 border-t border-gray-200 grid md:grid-cols-3 gap-6">
+                <div class="md:col-span-2">
+                  <h2 class="text-lg font-semibold mb-2">About</h2>
+                  <p id="d_desc" class="text-[15px] leading-7 text-gray-700"></p>
+                </div>
+                <aside>
+                  <h2 class="text-lg font-semibold mb-2">Links</h2>
+                  <div id="d_links" class="flex flex-wrap gap-2"></div>
+                </aside>
+              </div>
+            </div>
+          </article>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Share modal -->
+  <div id="shareModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-gray-900/60" data-close="share"></div>
+    <div class="relative grid place-items-center min-h-dvh p-4">
+      <div class="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-card">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold">Share</h3>
+          <button class="h-9 w-9 grid place-items-center rounded-lg border border-gray-200 hover:bg-gray-50" data-close="share" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="mt-4 flex items-center gap-2">
+          <input id="shareUrl" class="flex-1 h-11 rounded-lg border border-gray-200 px-3" readonly>
+          <button id="copyShare" class="h-11 px-4 rounded-lg bg-ah-600 text-white hover:bg-ah-700">Copy</button>
+        </div>
+        <div id="copied" class="mt-3 text-emerald-600 text-sm hidden">Copied!</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== JS ====== -->
+  <script>
+    const API_URL = "https://sheet2api.com/v1/ubMLioGAT8Gm/final-data";
+    const PREVIEW_COUNT = 3;
+    const RECENT_KEY = 'ah_recent_searches_v1';
+
+    const $ = (s, r=document)=>r.querySelector(s);
+    const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+    const safe = v => (v??"").toString().trim();
+    const toInt = x => { const n=parseInt(x,10); return Number.isFinite(n)?n:null; };
+    const isHttp = (u)=>{try{const x=new URL(u);return x.protocol==='http:'||x.protocol==='https:';}catch(e){return false;}};
+    const slugify = s => safe(s).toLowerCase().replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'') || ('id-'+Math.random().toString(36).slice(2));
+
+    const BG=['#DBEAFE','#FCE7F3','#EDE9FE','#FEE2E2','#DCFCE7','#FEF3C7','#F1F5F9'];
+    const FG=['#1E40AF','#9D174D','#5B21B6','#991B1B','#065F46','#92400E','#334155'];
+    const hash=s=>Array.from(s).reduce((a,c)=>((a<<5)-a+c.charCodeAt(0))|0,0)>>>0;
+    const colorsFor=name=>{const i=hash(name||'AH')%BG.length;return{bg:BG[i],fg:FG[i]}};
+    const initials=name=> (safe(name).split(/\s+/).slice(0,2).map(p=>p[0]||'').join('')||'AH').toUpperCase();
+
+    let DATA = [];
+    let VIEW_MODE = 'explore';        // explore | orgs | businesses | projects | events
+    let DIR_SORT = 'popular';         // for orgs/businesses/projects pages
+    let SEARCH_SORT = 'relevance';    // for search results page
+    let CURRENT_QUERY = '';           // last search query
+    const selectedThemes = new Set();
+
+    const kindOf = s=>{
+      const v=safe(s).toLowerCase();
+      if(/business|biz/.test(v)) return 'business';
+      if(/project|proj/.test(v)) return 'project';
+      return 'org';
+    };
+
+    function normalize(row){
+      const name = safe(row.org_name || row.name);
+      if(!name) return null;
+      return {
+        slug: slugify(name),
+        name,
+        kind: kindOf(row.page_type || row.type || 'org'),
+        logo: safe(row.logo_url),
+        tagline: safe(row.tagline),
+        desc: safe(row.description_preview),
+        theme: safe(row.theme),
+        industry: safe(row.industry),
+        verified: /^y(es)?$/i.test(safe(row.verified)),
+        members: toInt(row.member_count),
+        website: safe(row.website),
+        instagram: safe(row.instagram),
+        twitter_x: safe(row.twitter_x),
+        facebook: safe(row.facebook),
+        linkedin: safe(row.linkedin),
+        youtube: safe(row.youtube),
+        tiktok: safe(row.tiktok),
+        discord: safe(row.discord),
+        groupme: safe(row.groupme),
+        linktree: safe(row.linktree)
+      }
+    }
+
+    function scoreRelevance(o, q=''){
+      if(!q) return (o.members||0);
+      const t = q.toLowerCase().trim();
+      const terms = t.split(/\s+/).filter(Boolean);
+      let s = 0;
+      if(o.name.toLowerCase()===t) s += 1000;
+      if(o.name.toLowerCase().startsWith(t)) s += 200;
+      terms.forEach(k=>{
+        if(o.name.toLowerCase().includes(k)) s += 60;
+        if((o.tagline||'').toLowerCase().includes(k)) s += 20;
+        if((o.theme||'').toLowerCase().includes(k)) s += 25;
+        if((o.industry||'').toLowerCase().includes(k)) s += 15;
+      });
+      if(o.verified) s += 10;
+      s += Math.min(100, (o.members||0)/10);
+      return s;
+    }
+    function sortList(list, sortType, q=''){
+      const arr = list.slice();
+      switch(sortType){
+        case 'az': return arr.sort((a,b)=>a.name.localeCompare(b.name));
+        case 'za': return arr.sort((a,b)=>b.name.localeCompare(a.name));
+        case 'popular': return arr.sort((a,b)=>(b.members||0)-(a.members||0));
+        case 'verified': return arr.sort((a,b)=>((b.verified?1:0)-(a.verified?1:0)) || (b.members||0)-(a.members||0) || a.name.localeCompare(b.name));
+        case 'relevance':
+        default:
+          return arr.sort((a,b)=>scoreRelevance(b,q)-scoreRelevance(a,q));
+      }
+    }
+
+    // ---- Card & Event HTML ----
+    function token(t){ return `<span class="inline-flex items-center text-[11px] px-2.5 py-1 rounded-full bg-gray-100 border border-gray-200">${t}</span>`; }
+
+    function cardHTML(o){
+      const hasLogo = isHttp(o.logo);
+      const members = o.members!=null ? token(`${o.members} members`) : '';
+      const verified = o.verified ? `<i class="fa-solid fa-circle-check text-sky-600 ml-1"></i>` : '';
+      const c = colorsFor(o.name);
+      return `
+        <a href="?org=${o.slug}" data-nav="${o.slug}"
+           class="block rounded-xl border border-gray-200 bg-white p-4 shadow-card hover:shadow transition fade-in">
+          <div class="flex items-start gap-3">
+            <div class="w-14 h-14 rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-1"
+                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
+              <div class="${hasLogo?'hidden':''} w-14 h-14 rounded-xl grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-[15px] font-semibold tracking-tight truncate">${o.name}${verified}</h3>
+              ${o.tagline ? `<p class="text-[13px] text-gray-500 mt-0.5 line-clamp-2">${o.tagline}</p>` : ''}
+              <div class="mt-2 flex flex-wrap gap-2">
+                ${o.theme ? token(o.theme) : ''} ${o.industry ? token(o.industry) : ''} ${members}
+              </div>
+            </div>
+          </div>
+        </a>
+      `;
+    }
+
+    function eventCardHTML(o){
+      const hasLogo = isHttp(o.logo);
+      const verified = o.verified ? `<i class="fa-solid fa-circle-check text-sky-600 ml-1"></i>` : '';
+      const c = colorsFor(o.name);
+      return `
+        <a href="?org=${o.slug}" data-nav="${o.slug}"
+           class="block rounded-xl border border-gray-200 bg-white p-4 shadow-card hover:shadow transition fade-in">
+          <div class="flex items-start gap-3">
+            <div class="w-14 h-14 rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-1"
+                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
+              <div class="${hasLogo?'hidden':''} w-14 h-14 rounded-xl grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
+            </div>
+            <div class="min-w-0 flex-1">
+              <h3 class="text-[15px] font-semibold tracking-tight truncate">${o.name}${verified}</h3>
+              ${o.tagline ? `<p class="text-[13px] text-gray-500 mt-0.5 line-clamp-2">${o.tagline}</p>` : ''}
+              <div class="mt-2 flex flex-wrap gap-2">
+                ${o.theme ? token(o.theme) : ''} ${o.industry ? token(o.industry) : ''}
+              </div>
+              <div class="mt-3 space-y-1.5 text-[13px] text-gray-700">
+                <div class="flex items-start gap-2">
+                  <i class="fa-regular fa-clock mt-0.5"></i>
+                  <span><strong>Mondays &amp; Thursdays at 1:50 PM</strong></span>
+                </div>
+                <div class="flex items-start gap-2">
+                  <i class="fa-solid fa-rotate mt-0.5"></i>
+                  <span>Weekly recurring meeting from the start to the end of the St. John’s semester, on days when the university is open.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </a>
+      `;
+    }
+
+    function renderDetail(o){
+      document.title = `${o.name} — Activity Hub`;
+      const logo = $('#d_logo'); const ph = $('#d_fallback');
+      const showFallback = ()=>{ logo.classList.add('hidden'); ph.classList.remove('hidden'); const c=colorsFor(o.name); ph.style.background=c.bg; ph.style.color=c.fg; ph.textContent=initials(o.name); };
+      if(isHttp(o.logo)){
+        logo.src=o.logo; logo.alt=`${o.name} logo`; logo.classList.remove('hidden'); ph.classList.add('hidden');
+        logo.onerror = showFallback;
+      } else { showFallback(); }
+
+      $('#d_name').innerHTML = o.name + (o.verified ? ' <i class="fa-solid fa-circle-check text-sky-600"></i>' : '');
+      const t=$('#d_theme'), i=$('#d_industry'), m=$('#d_members'), v=$('#d_verified');
+      t.textContent=o.theme; t.classList.toggle('hidden', !o.theme);
+      i.textContent=o.industry; i.classList.toggle('hidden', !o.industry);
+      if(o.members!=null){ m.classList.remove('hidden'); m.querySelector('span').textContent=o.members } else m.classList.add('hidden');
+      v.classList.toggle('hidden', !o.verified);
+      $('#d_desc').textContent = o.desc || o.tagline || 'No description provided.';
+
+      const links = [
+        ['Website','fa-solid fa-globe', o.website],
+        ['Instagram','fa-brands fa-instagram', o.instagram],
+        ['X','fa-brands fa-x-twitter', o.twitter_x],
+        ['Facebook','fa-brands fa-facebook', o.facebook],
+        ['LinkedIn','fa-brands fa-linkedin', o.linkedin],
+        ['YouTube','fa-brands fa-youtube', o.youtube],
+        ['TikTok','fa-brands fa-tiktok', o.tiktok],
+        ['Discord','fa-brands fa-discord', o.discord],
+        ['GroupMe','fa-solid fa-user-group', o.groupme],
+        ['Linktree','fa-solid fa-link', o.linktree],
+      ].filter(([, , href])=> { try{ new URL(href); return true; } catch{ return false; }});
+      $('#d_links').innerHTML = links.length
+        ? links.map(([label,icon,href])=> `<a href="${href}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50"><i class="${icon}"></i><span>${label}</span></a>`).join('')
+        : '<p class="text-sm text-gray-500">No links provided.</p>';
+
+      $('#shareBtn').onclick = ()=>{
+        $('#shareUrl').value = location.href;
+        $('#shareModal').classList.remove('hidden');
+        $('#copied').classList.add('hidden');
+      };
+    }
+
+    function showSkeletons(gridId, n=6){
+      const g = document.getElementById(gridId);
+      g.innerHTML = Array.from({length:n}).map(()=>`
+        <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-card animate-pulse">
+          <div class="flex items-start gap-3">
+            <div class="w-14 h-14 rounded-xl bg-gray-200"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-4 w-2/3 rounded bg-gray-200"></div>
+              <div class="h-3 w-5/6 rounded bg-gray-200"></div>
+              <div class="flex gap-2 pt-1">
+                <div class="h-5 w-20 rounded-full bg-gray-200"></div>
+                <div class="h-5 w-20 rounded-full bg-gray-200"></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      `).join('');
+    }
+
+    const filteredByTheme = (arr)=> selectedThemes.size ? arr.filter(x=> selectedThemes.has(x.theme)) : arr;
+
+    function setSectionTitles(){
+      $('#title-orgs').textContent  = (VIEW_MODE==='orgs')       ? 'All organizations' : 'Top organizations';
+      $('#title-biz').textContent   = (VIEW_MODE==='businesses') ? 'All businesses'    : 'Top businesses';
+      $('#title-projects').textContent = (VIEW_MODE==='projects') ? 'All projects'     : 'Top projects';
+    }
+
+    function renderGrid(items, gridId, emptyId, count=null, mapper=cardHTML){
+      const grid = document.getElementById(gridId);
+      const list = (count==null) ? items : items.slice(0, count);
+      if(!list.length){ grid.innerHTML=''; document.getElementById(emptyId).classList.remove('hidden'); return; }
+      document.getElementById(emptyId).classList.add('hidden');
+      grid.innerHTML = list.map(mapper).join('');
+      requestAnimationFrame(()=> $$('.fade-in',grid).forEach((n,i)=> setTimeout(()=>n.classList.add('show'), 15*i)));
+      $$('#'+gridId+' [data-nav]').forEach(a=>{
+        a.addEventListener('click', e=>{ e.preventDefault(); navigateToDetail(a.getAttribute('data-nav')); });
+      });
+    }
+
+    function setActiveSidebar(view){
+      $$('[data-route]').forEach(a=> a.classList.remove('nav-active'));
+      $$(`[data-route="${view}"]`).forEach(a=> a.classList.add('nav-active'));
+    }
+
+    function applyFiltersAndRender(){
+      setSectionTitles();
+
+      // Show explore-only bars and events-only banner
+      const bars = document.getElementById('explore-bars');
+      if (bars) bars.classList.toggle('hidden', VIEW_MODE !== 'explore');
+      const evBanner = document.getElementById('events-banner');
+      if (evBanner) evBanner.classList.toggle('hidden', VIEW_MODE !== 'events');
+
+      const orgsAll = filteredByTheme(DATA.filter(x=>x.kind==='org'));
+      const bizAll  = filteredByTheme(DATA.filter(x=>x.kind==='business'));
+      const prjAll  = filteredByTheme(DATA.filter(x=>x.kind==='project'));
+
+      // Toggle sections
+      $('#section-events').classList.toggle('hidden', VIEW_MODE!=='events');
+      const hideNonEvents = VIEW_MODE==='events';
+      $('#section-orgs').classList.toggle('hidden', hideNonEvents);
+      $('#section-biz').classList.toggle('hidden', hideNonEvents);
+      $('#section-projects').classList.toggle('hidden', hideNonEvents);
+
+      $('#sort-orgs-wrap').classList.toggle('hidden', VIEW_MODE!=='orgs');
+      $('#sort-biz-wrap').classList.toggle('hidden', VIEW_MODE!=='businesses');
+      $('#sort-projects-wrap').classList.toggle('hidden', VIEW_MODE!=='projects');
+
+      if (VIEW_MODE==='explore') {
+        renderGrid(sortList(orgsAll,'popular'), 'orgs-grid', 'orgs-empty', PREVIEW_COUNT, cardHTML);
+        renderGrid(sortList(bizAll,'popular'),  'biz-grid',  'biz-empty',  PREVIEW_COUNT, cardHTML);
+        renderGrid(sortList(prjAll,'popular'),  'projects-grid', 'projects-empty', PREVIEW_COUNT, cardHTML);
+      } else if (VIEW_MODE==='orgs') {
+        renderGrid(sortList(orgsAll, DIR_SORT), 'orgs-grid', 'orgs-empty', null, cardHTML);
+        $('#section-biz').classList.add('hidden'); $('#section-projects').classList.add('hidden');
+      } else if (VIEW_MODE==='businesses') {
+        renderGrid(sortList(bizAll, DIR_SORT), 'biz-grid', 'biz-empty', null, cardHTML);
+        $('#section-orgs').classList.add('hidden'); $('#section-projects').classList.add('hidden');
+      } else if (VIEW_MODE==='projects') {
+        renderGrid(sortList(prjAll, DIR_SORT), 'projects-grid', 'projects-empty', null, cardHTML);
+        $('#section-orgs').classList.add('hidden'); $('#section-biz').classList.add('hidden');
+      } else if (VIEW_MODE==='events') {
+        // Duplicate each ORG into an event card
+        renderGrid(orgsAll, 'events-grid', 'events-empty', null, eventCardHTML);
+      }
+
+      updateDirSortLabels();
+    }
+
+    function navigateToView(view, push=true){
+      VIEW_MODE = view;
+      setActiveSidebar(view);
+      showDirectory();
+      if (push){
+        const url = new URL(location.href);
+        url.searchParams.delete('org'); url.searchParams.delete('search'); url.searchParams.delete('scope');
+        url.searchParams.set('view', view); url.searchParams.set('sort', DIR_SORT);
+        history.pushState({view, sort:DIR_SORT}, '', url);
+      }
+      applyFiltersAndRender();
+      window.scrollTo({top:0,behavior:'instant'});
+      const drawer = document.getElementById('sidebar-drawer');
+      if (drawer && !drawer.classList.contains('hidden')) closeDrawer();
+    }
+
+    function navigateToDetail(slug){
+      const url = new URL(location.href); url.searchParams.set('org',slug); history.pushState({org:slug},'',url);
+      const o = DATA.find(x=>x.slug===slug); if(!o) return;
+      $('#view-directory').classList.add('hidden');
+      $('#view-search').classList.add('hidden');
+      $('#view-detail').classList.remove('hidden');
+      renderDetail(o);
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    function showDirectory(){
+      $('#view-detail').classList.add('hidden');
+      $('#view-search').classList.add('hidden');
+      $('#view-directory').classList.remove('hidden');
+      document.title = 'Activity Hub – Explore';
+    }
+
+    // ---------- SEARCH (Desktop & Mobile, full) ----------
+    const RECENT_LIMIT = 6;
+    function getRecents(){ try{ return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); }catch{ return []; } }
+    function pushRecent(q){ q=q.trim(); if(!q) return; const r=getRecents().filter(x=>x!==q); r.unshift(q); localStorage.setItem(RECENT_KEY, JSON.stringify(r.slice(0,RECENT_LIMIT))); }
+    function clearRecents(){ localStorage.removeItem(RECENT_KEY); }
+
+    let searchScope = 'all';  // all | orgs | businesses | projects
+    function scopeFilter(arr, scope=searchScope){
+      if(scope==='orgs') return arr.filter(x=>x.kind==='org');
+      if(scope==='businesses') return arr.filter(x=>x.kind==='business');
+      if(scope==='projects') return arr.filter(x=>x.kind==='project');
+      return arr;
+    }
+    function searchData(q, scope=searchScope){
+      const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const match = o => terms.every(t =>
+        o.name.toLowerCase().includes(t) ||
+        o.theme.toLowerCase().includes(t) ||
+        o.industry.toLowerCase().includes(t) ||
+        o.tagline.toLowerCase().includes(t)
+      );
+      let pool = DATA;
+      if(terms.length) pool = pool.filter(match);
+      pool = scopeFilter(pool, scope);
+      const byKind = {
+        orgs: pool.filter(x=>x.kind==='org').slice(0,5),
+        businesses: pool.filter(x=>x.kind==='business').slice(0,5),
+        projects: pool.filter(x=>x.kind==='project').slice(0,5),
+      };
+      return { byKind, total: pool.length, pool };
+    }
+    function popularOrgList(){
+      let orgs = DATA.filter(x=>x.kind==='org');
+      if(orgs.length<=5) return orgs;
+      orgs = orgs.sort((a,b)=>(b.members||0)-(a.members||0)).slice(0,12);
+      for(let i=orgs.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [orgs[i],orgs[j]]=[orgs[j],orgs[i]]; }
+      return orgs.slice(0,5);
+    }
+    function resultRow(o){
+      const hasLogo = isHttp(o.logo);
+      const c = colorsFor(o.name);
+      const badge = o.kind==='org' ? 'Org' : (o.kind==='business' ? 'Business' : 'Project');
+      const icon = o.kind==='org' ? 'fa-users' : (o.kind==='business' ? 'fa-briefcase' : 'fa-diagram-project');
+      const verified = o.verified ? `<i class="fa-solid fa-circle-check text-sky-600 ml-1"></i>` : '';
+      const muted = (o.tagline || o.theme || o.industry) ? (o.tagline || `${o.theme || ''}${o.theme&&o.industry?' • ':''}${o.industry || ''}`) : '';
+      return `
+        <a href="?org=${o.slug}" data-open="${o.slug}" role="option" class="search-item block px-3 py-2 hover:bg-gray-50" aria-selected="false">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-0.5"
+                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
+              <div class="${hasLogo?'hidden':''} w-9 h-9 rounded-lg grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <div class="truncate text-[14px] font-medium">${o.name}${verified}</div>
+                <span class="search-badge"><i class="fa-solid ${icon} mr-1"></i>${badge}</span>
+              </div>
+              ${muted ? `<div class="text-xs text-gray-500 truncate mt-0.5">${muted}</div>` : ''}
+            </div>
+          </div>
+        </a>
+      `;
+    }
+    function section(title, arr){
+      if(!arr.length) return '';
+      return `<div class="py-1"><div class="px-3 py-1.5 text-[11px] uppercase tracking-wide text-gray-500">${title}</div><div>${arr.map(resultRow).join('')}</div></div>`;
+    }
+
+    // ----- DESKTOP search controller -----
+    const searchInput = $('#global-search');
+    const searchbox = $('#searchbox');
+    const searchMenu = $('#search-menu');
+    const resultsEl = $('#search-results');
+    const clearBtn = $('#clear-search');
+    const footerClear = $('#search-clear-recents');
+    const scopePill = $('#scope-pill');
+
+    let activeIndex = -1;
+    let currentItems = [];
+
+    function renderRecentsOnlyDesktop(){
+      const recents = getRecents(); footerClear.classList.toggle('hidden', recents.length===0);
+      if(!recents.length) return `<div class="px-3 py-6 text-sm text-gray-500">Start typing to search organizations, businesses, and projects.</div>`;
+      return `<div class="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-gray-500">Recent searches</div>
+              <div class="px-2 pb-2 flex flex-wrap gap-2">
+                ${recents.map(q=>`<button class="recent-btn px-2.5 py-1.5 text-sm rounded-full border border-gray-200 bg-white hover:bg-gray-50" data-q="${q.replace(/"/g,'&quot;')}"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i>${q}</button>`).join('')}
+              </div>`;
+    }
+    function renderEmptyMenuDesktop(){
+      const popular = popularOrgList();
+      const popSection = section('Popular organizations', popular);
+      const recents = renderRecentsOnlyDesktop();
+      return popSection + recents;
+    }
+    function openMenu(){ searchMenu.classList.remove('hidden'); searchbox.setAttribute('aria-expanded','true'); renderSearchMenu(); document.addEventListener('mousedown', outsideClose); document.addEventListener('keydown', handleKeys, true); }
+    function closeMenu(){ searchMenu.classList.add('hidden'); searchbox.setAttribute('aria-expanded','false'); activeIndex=-1; currentItems=[]; resultsEl.innerHTML=''; document.removeEventListener('mousedown', outsideClose); document.removeEventListener('keydown', handleKeys, true); }
+    function outsideClose(e){ if(!searchbox.contains(e.target)) closeMenu(); }
+
+    function renderSearchMenu(){
+      const q = searchInput.value;
+      clearBtn.classList.toggle('hidden', !q);
+      let html = '';
+      currentItems = []; activeIndex = -1;
+      if(!q.trim()) html = renderEmptyMenuDesktop();
+      else {
+        const { byKind } = searchData(q);
+        const blocks = [];
+        if(searchScope==='all'){ blocks.push(section('Organizations', byKind.orgs), section('Businesses', byKind.businesses), section('Projects', byKind.projects)); }
+        else if(searchScope==='orgs'){ blocks.push(section('Organizations', byKind.orgs)); }
+        else if(searchScope==='businesses'){ blocks.push(section('Businesses', byKind.businesses)); }
+        else if(searchScope==='projects'){ blocks.push(section('Projects', byKind.projects)); }
+        html = blocks.join('') || `<div class="px-3 py-6 text-sm text-gray-500">No results for “${q.replace(/</g,'&lt;')}”.</div>`;
+      }
+      resultsEl.innerHTML = html;
+      currentItems = $$('.search-item', resultsEl);
+      currentItems.forEach((el, idx)=>{
+        el.addEventListener('mousemove', ()=> highlightIndex(idx));
+        el.addEventListener('click', (e)=>{ e.preventDefault(); const slug = el.getAttribute('data-open'); if(slug){ closeMenu(); navigateToDetail(slug); pushRecent(searchInput.value); } });
+      });
+      $$('.recent-btn', resultsEl).forEach(btn=>{
+        btn.addEventListener('click', ()=>{ searchInput.value = btn.getAttribute('data-q'); searchInput.focus(); renderSearchMenu(); });
+      });
+    }
+    function highlightIndex(i){
+      if(!currentItems.length) return;
+      activeIndex = Math.max(0, Math.min(i, currentItems.length-1));
+      currentItems.forEach((el, j)=> el.setAttribute('aria-selected', j===activeIndex ? 'true' : 'false'));
+      currentItems[activeIndex]?.scrollIntoView({block:'nearest', inline:'nearest'});
+    }
+    function activateCurrent(){ if(activeIndex>=0 && currentItems[activeIndex]){ currentItems[activeIndex].click(); return true; } return false; }
+
+    function handleKeys(e){
+      if(searchMenu.classList.contains('hidden')) return;
+      if(e.key==='ArrowDown'){ e.preventDefault(); if(currentItems.length){ highlightIndex(activeIndex+1); } }
+      else if(e.key==='ArrowUp'){ e.preventDefault(); if(currentItems.length){ highlightIndex(activeIndex-1); } }
+      else if(e.key==='Enter'){
+        e.preventDefault();
+        if(activateCurrent()) { pushRecent(searchInput.value); return; }
+        const q = searchInput.value.trim();
+        const { pool } = searchData(q);
+        const exact = pool.filter(o => o.name.toLowerCase() === q.toLowerCase());
+        if(exact.length === 1){
+          closeMenu(); navigateToDetail(exact[0].slug); pushRecent(q);
+        }else{
+          closeMenu(); navigateToSearch(q, searchScope); pushRecent(q);
+        }
+      }
+      else if(e.key==='Escape'){ e.preventDefault(); closeMenu(); }
+    }
+
+    // ----- MOBILE search controller (full menu) -----
+    const mSearchWrap  = $('#mobile-search');
+    const mSearchBox   = $('#m-searchbox');
+    const mSearchInput = $('#mobile-global-search');
+    const mMenu        = $('#m-search-menu');
+    const mResultsEl   = $('#m-search-results');
+    const mFooterClear = $('#m-search-clear-recents');
+    const mScopePill   = $('#m-scope-pill');
+
+    let mActiveIndex = -1;
+    let mItems = [];
+
+    function renderRecentsOnlyMobile(){
+      const recents = getRecents(); if(mFooterClear) mFooterClear.classList.toggle('hidden', recents.length===0);
+      if(!recents.length) return `<div class="px-3 py-6 text-sm text-gray-500">Start typing to search organizations, businesses, and projects.</div>`;
+      return `<div class="px-3 pt-2 pb-1 text-[11px] uppercase tracking-wide text-gray-500">Recent searches</div>
+              <div class="px-2 pb-2 flex flex-wrap gap-2">
+                ${recents.map(q=>`<button class="m-recent-btn px-2.5 py-1.5 text-sm rounded-full border border-gray-200 bg-white hover:bg-gray-50" data-q="${q.replace(/"/g,'&quot;')}"><i class="fa-solid fa-clock-rotate-left mr-1.5"></i>${q}</button>`).join('')}
+              </div>`;
+    }
+    function renderEmptyMenuMobile(){
+      const popular = popularOrgList();
+      const popSection = section('Popular organizations', popular);
+      const recents = renderRecentsOnlyMobile();
+      return popSection + recents;
+    }
+    function mOpenMenu(){ if(!mMenu) return; mMenu.classList.remove('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','true'); mRenderMenu(); document.addEventListener('mousedown', mOutsideClose); }
+    function mCloseMenu(){ if(!mMenu) return; mMenu.classList.add('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','false'); mActiveIndex=-1; mItems=[]; if(mResultsEl) mResultsEl.innerHTML=''; document.removeEventListener('mousedown', mOutsideClose); }
+    function mOutsideClose(e){ if(!mSearchBox || !mMenu) return; if(!mSearchBox.contains(e.target)) mCloseMenu(); }
+
+    function mRenderMenu(){
+      if(!mResultsEl) return;
+      const q = mSearchInput ? mSearchInput.value : '';
+      let html = '';
+      mItems = []; mActiveIndex = -1;
+      if(!q.trim()) html = renderEmptyMenuMobile();
+      else {
+        const { byKind } = searchData(q);
+        const blocks = [];
+        if(searchScope==='all'){ blocks.push(section('Organizations', byKind.orgs), section('Businesses', byKind.businesses), section('Projects', byKind.projects)); }
+        else if(searchScope==='orgs'){ blocks.push(section('Organizations', byKind.orgs)); }
+        else if(searchScope==='businesses'){ blocks.push(section('Businesses', byKind.businesses)); }
+        else if(searchScope==='projects'){ blocks.push(section('Projects', byKind.projects)); }
+        html = blocks.join('') || `<div class="px-3 py-6 text-sm text-gray-500">No results for “${q.replace(/</g,'&lt;')}”.</div>`;
+      }
+      mResultsEl.innerHTML = html;
+      mItems = $$('.search-item', mResultsEl);
+      mItems.forEach((el)=>{
+        el.addEventListener('click', (e)=>{ e.preventDefault(); const slug = el.getAttribute('data-open'); if(slug){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(slug); pushRecent(q); } });
+      });
+      $$('.m-recent-btn', mResultsEl).forEach(btn=>{
+        btn.addEventListener('click', ()=>{ if(mSearchInput){ mSearchInput.value = btn.getAttribute('data-q'); mSearchInput.focus(); mRenderMenu(); } });
+      });
+    }
+
+    // ----- shared tabs + scope pill for both menus -----
+    function updateScopePillDesktop(){
+      const input = searchInput;
+      if(!input) return;
+      if(searchScope==='all'){
+        if(scopePill) scopePill.classList.add('hidden');
+        input.classList.remove('pl-32'); input.classList.add('pl-10');
+        return;
+      }
+      const meta = {
+        orgs:       {label:'Orgs', icon:'fa-users'},
+        businesses: {label:'Businesses', icon:'fa-briefcase'},
+        projects:   {label:'Projects', icon:'fa-diagram-project'},
+      }[searchScope];
+      if(scopePill){
+        scopePill.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-white border border-gray-200 shadow-sm">
+          <i class="fa-solid ${meta.icon}"></i>${meta.label}
+          <button type="button" id="clear-scope" class="ml-1 -mr-1 p-1 hover:bg-gray-100 rounded"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+        </span>`;
+        scopePill.classList.remove('hidden');
+      }
+      input.classList.remove('pl-10'); input.classList.add('pl-32');
+      const clearBtnScope = document.getElementById('clear-scope');
+      if (clearBtnScope) clearBtnScope.addEventListener('click', (e)=>{ e.stopPropagation(); setScope('all'); renderSearchMenu(); searchInput.focus(); });
+    }
+    function updateScopePillMobile(){
+      const input = mSearchInput;
+      if(!input) return;
+      if(searchScope==='all'){
+        if(mScopePill) mScopePill.classList.add('hidden');
+        input.classList.remove('pl-32'); input.classList.add('pl-10');
+        return;
+      }
+      const meta = {
+        orgs:       {label:'Orgs', icon:'fa-users'},
+        businesses: {label:'Businesses', icon:'fa-briefcase'},
+        projects:   {label:'Projects', icon:'fa-diagram-project'},
+      }[searchScope];
+      if(mScopePill){
+        mScopePill.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-full bg-white border border-gray-200 shadow-sm">
+          <i class="fa-solid ${meta.icon}"></i>${meta.label}
+          <button type="button" id="m-clear-scope" class="ml-1 -mr-1 p-1 hover:bg-gray-100 rounded"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+        </span>`;
+        mScopePill.classList.remove('hidden');
+      }
+      input.classList.remove('pl-10'); input.classList.add('pl-32');
+      const clearBtnScope = document.getElementById('m-clear-scope');
+      if (clearBtnScope) clearBtnScope.addEventListener('click', (e)=>{ e.stopPropagation(); setScope('all'); mRenderMenu(); mSearchInput && mSearchInput.focus(); });
+    }
+    function setScope(scope){
+      searchScope = scope;
+      $$('.search-tab').forEach(t=>{
+        t.classList.remove('font-medium','bg-gray-100');
+        if(t.getAttribute('data-scope')===scope) t.classList.add('font-medium','bg-gray-100');
+      });
+      updateScopePillDesktop();
+      updateScopePillMobile();
+    }
+    // attach once (affects both menus)
+    $$('.search-tab').forEach((t,i)=>{
+      if(i===0) t.classList.add('font-medium','bg-gray-100');
+      t.addEventListener('click', ()=>{
+        setScope(t.getAttribute('data-scope'));
+        renderSearchMenu();
+        mRenderMenu();
+      });
+    });
+
+    // Desktop input wiring
+    ['focus','input','click'].forEach(evt=> searchInput && searchInput.addEventListener(evt, ()=>{ if(searchMenu.classList.contains('hidden')) openMenu(); else renderSearchMenu(); }));
+    searchInput && searchInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter' && searchMenu.classList.contains('hidden')){ const q=searchInput.value.trim(); if(q) navigateToSearch(q, 'all'); }});
+    clearBtn && clearBtn.addEventListener('click', ()=>{ searchInput.value=''; searchInput.focus(); renderSearchMenu(); });
+    footerClear && footerClear.addEventListener('click', ()=>{ clearRecents(); renderSearchMenu(); });
+    window.addEventListener('keydown', e=>{
+      const isTyping = ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+      if(e.key==='/' && !isTyping){ e.preventDefault(); if(searchInput){ searchInput.focus(); openMenu(); } }
+    });
+
+    // Mobile search toggle
+    const mobileSearchBtn = document.getElementById('mobile-search-btn');
+    if (mobileSearchBtn) {
+      mobileSearchBtn.addEventListener('click', () => {
+        if (window.matchMedia('(min-width: 768px)').matches) {
+          if (searchInput) {
+            searchInput.focus();
+            if (searchMenu && searchMenu.classList.contains('hidden')) {
+              const evt = new Event('focus'); searchInput.dispatchEvent(evt);
+            }
+          }
+          return;
+        }
+        if (mSearchWrap) {
+          mSearchWrap.classList.toggle('hidden');
+          if (!mSearchWrap.classList.contains('hidden') && mSearchInput) {
+            setTimeout(() => { mSearchInput.focus(); mOpenMenu(); }, 50);
+          } else {
+            mCloseMenu();
+          }
+        }
+      });
+    }
+
+    // ----- MOBILE input wiring -----
+    if (mSearchInput){
+      mSearchInput.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter'){
+          const q = mSearchInput.value.trim();
+          const { pool } = searchData(q);
+          const exact = pool.filter(o => o.name.toLowerCase() === q.toLowerCase());
+          if(exact.length === 1){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToDetail(exact[0].slug); pushRecent(q); }
+          else if(q){ mCloseMenu(); if(mSearchWrap) mSearchWrap.classList.add('hidden'); navigateToSearch(q, searchScope); pushRecent(q); }
+        }
+      });
+    }
+    mFooterClear && mFooterClear.addEventListener('click', ()=>{ clearRecents(); mRenderMenu(); });
+
+    // ---------- Search results page ----------
+    function navigateToSearch(q, scope='all', push=true){
+      CURRENT_QUERY = q;
+      $('#view-directory').classList.add('hidden');
+      $('#view-detail').classList.add('hidden');
+      $('#view-search').classList.remove('hidden');
+      document.title = `Search: ${q} — Activity Hub`;
+      if(push){
+        const u = new URL(location.href);
+        u.searchParams.delete('org');
+        u.searchParams.delete('view');
+        u.searchParams.set('search', q);
+        if(scope && scope!=='all') u.searchParams.set('scope', scope); else u.searchParams.delete('scope');
+        u.searchParams.set('sort', SEARCH_SORT);
+        history.pushState({search:q, scope, sort:SEARCH_SORT}, '', u);
+      }
+      setScope(scope);
+      renderSearchResults(q, scope);
+    }
+
+    function renderSearchResults(q, scope='all'){
+      $('#srch-title').textContent = `Results for “${q}”`;
+      $$('.srch-scope').forEach(btn=>{
+        btn.classList.remove('bg-gray-100','font-medium');
+        if(btn.getAttribute('data-scope')===scope) btn.classList.add('bg-gray-100','font-medium');
+        btn.onclick = ()=> navigateToSearch(q, btn.getAttribute('data-scope'));
+      });
+
+      const terms = q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+      const match = o => terms.every(t => o.name.toLowerCase().includes(t) || o.theme.toLowerCase().includes(t) || o.industry.toLowerCase().includes(t) || o.tagline.toLowerCase().includes(t));
+      let pool = DATA;
+      if(terms.length) pool = pool.filter(match);
+      pool = scopeFilter(pool, scope);
+
+      const orgs = sortList(pool.filter(x=>x.kind==='org'), SEARCH_SORT, q);
+      const biz  = sortList(pool.filter(x=>x.kind==='business'), SEARCH_SORT, q);
+      const prj  = sortList(pool.filter(x=>x.kind==='project'), SEARCH_SORT, q);
+
+      $('#rs-orgs-title').textContent = `Organizations (${orgs.length})`;
+      $('#rs-biz-title').textContent  = `Businesses (${biz.length})`;
+      $('#rs-projects-title').textContent = `Projects (${prj.length})`;
+
+      renderGrid(orgs, 'rs-orgs-grid', 'rs-orgs-empty', null);
+      renderGrid(biz,  'rs-biz-grid',  'rs-biz-empty',  null);
+      renderGrid(prj,  'rs-projects-grid', 'rs-projects-empty', null);
+
+      const lbl = document.getElementById('srch-sort-label');
+      if (lbl) lbl.textContent = {relevance:'Relevance', az:'A → Z', za:'Z → A', popular:'Popular', verified:'Verified first'}[SEARCH_SORT];
+    }
+
+    // ---------- Directory SORT controls ----------
+    const labelMap = {relevance:'Relevance',az:'A → Z',za:'Z → A',popular:'Popular',verified:'Verified first'};
+    function bindSort(prefix){
+      const wrap = document.getElementById(`sort-${prefix}-wrap`);
+      const btn  = document.getElementById(`sort-${prefix}-btn`);
+      const menu = document.getElementById(`sort-${prefix}-menu`);
+      if(!wrap||!btn||!menu) return;
+      function open(){ menu.classList.remove('hidden'); const close=(e)=>{ if(!menu.contains(e.target)&&!btn.contains(e.target)){ menu.classList.add('hidden'); document.removeEventListener('mousedown',close); } }; document.addEventListener('mousedown',close); }
+      btn.addEventListener('click', open);
+      menu.querySelectorAll('.menu-item').forEach(it=>{
+        it.addEventListener('click', ()=>{
+          DIR_SORT = it.getAttribute('data-sort');
+          menu.classList.add('hidden');
+          updateDirSortLabels();
+          const url = new URL(location.href);
+          if(['orgs','businesses','projects'].includes(VIEW_MODE)){
+            url.searchParams.set('view', VIEW_MODE);
+            url.searchParams.set('sort', DIR_SORT);
+            history.replaceState({view:VIEW_MODE, sort:DIR_SORT}, '', url);
+          }
+          applyFiltersAndRender();
+        });
+      });
+    }
+    function updateDirSortLabels(){
+      const txt = labelMap[DIR_SORT] || 'Popular';
+      const e1 = document.getElementById('sort-orgs-label');      if(e1) e1.textContent = txt;
+      const e2 = document.getElementById('sort-biz-label');       if(e2) e2.textContent = txt;
+      const e3 = document.getElementById('sort-projects-label');  if(e3) e3.textContent = txt;
+    }
+    bindSort('orgs'); bindSort('biz'); bindSort('projects');
+
+    // ---------- Search SORT UI (results page) ----------
+    document.getElementById('srch-sort-btn').addEventListener('click', ()=>{
+      const menu = document.getElementById('srch-sort-menu');
+      menu.classList.remove('hidden');
+      const close=(e)=>{ if(!menu.contains(e.target)&&!document.getElementById('srch-sort-btn').contains(e.target)){ menu.classList.add('hidden'); document.removeEventListener('mousedown',close); } };
+      document.addEventListener('mousedown', close);
+    });
+    document.querySelectorAll('#srch-sort-menu .menu-item').forEach(it=>{
+      it.addEventListener('click', ()=>{
+        SEARCH_SORT = it.getAttribute('data-sort');
+        const lbl = document.getElementById('srch-sort-label');
+        if (lbl) lbl.textContent = labelMap[SEARCH_SORT];
+        document.getElementById('srch-sort-menu').classList.add('hidden');
+        const url = new URL(location.href);
+        if(url.searchParams.get('search')){
+          url.searchParams.set('sort', SEARCH_SORT);
+          history.replaceState({search:CURRENT_QUERY, sort:SEARCH_SORT}, '', url);
+        }
+        renderSearchResults(CURRENT_QUERY, url.searchParams.get('scope') || 'all');
+      });
+    });
+
+    // ---------- Browse chips ----------
+    $$('#browse-chips .ah-chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        const label = chip.textContent.trim();
+        const isAll = label.toLowerCase()==='all';
+        if(isAll){
+          $$('#browse-chips .ah-chip').forEach(c=>c.setAttribute('data-selected', c===chip?'true':'false'));
+          selectedThemes.clear();
+        }else{
+          const newState = chip.getAttribute('data-selected')!=='true';
+          chip.setAttribute('data-selected', newState?'true':'false');
+          const allChip = $$('#browse-chips .ah-chip').find(c=>c.textContent.trim().toLowerCase()==='all');
+          if (allChip) allChip.setAttribute('data-selected','false');
+          if(newState) selectedThemes.add(label); else selectedThemes.delete(label);
+          if(selectedThemes.size===0 && allChip) allChip.setAttribute('data-selected','true');
+        }
+        applyFiltersAndRender();
+      });
+    });
+
+    // ---------- Drawer controls ----------
+    const openBtn=$('#open-sidebar-btn'), drawer=$('#sidebar-drawer'), overlay=$('#drawer-overlay'), panel=$('#drawer-panel'), closeBtn=$('#close-drawer');
+    function openDrawer(){ if(!drawer) return; drawer.classList.remove('hidden'); requestAnimationFrame(()=>{ overlay.classList.remove('opacity-0'); panel.classList.remove('-translate-x-full'); }); if(openBtn) openBtn.setAttribute('aria-expanded','true'); setTimeout(()=>closeBtn&&closeBtn.focus(),150); }
+    function closeDrawer(){ if(!drawer) return; overlay.classList.add('opacity-0'); panel.classList.add('-translate-x-full'); if(openBtn) openBtn.setAttribute('aria-expanded','false'); panel.addEventListener('transitionend', function h(){ drawer.classList.add('hidden'); panel.removeEventListener('transitionend',h) }); }
+    if(openBtn) openBtn.addEventListener('click', openDrawer);
+    if(closeBtn) closeBtn.addEventListener('click', closeDrawer);
+    if(overlay) overlay.addEventListener('click', closeDrawer);
+    window.addEventListener('keydown', e=>{ if(e.key==='Escape' && drawer && !drawer.classList.contains('hidden')) closeDrawer(); });
+
+    // Back & share modal
+    const backEl = document.getElementById('back');
+    if (backEl) backEl.addEventListener('click', (e)=>{ e.preventDefault(); const u=new URL(location.href); u.searchParams.delete('org'); history.pushState({},'',u); showDirectory(); });
+
+    const copyBtn = document.getElementById('copyShare');
+    if (copyBtn) copyBtn.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(document.getElementById('shareUrl').value); document.getElementById('copied').classList.remove('hidden'); }catch(e){} });
+    document.querySelectorAll('[data-close="share"]').forEach(el=> el.addEventListener('click', ()=> document.getElementById('shareModal').classList.add('hidden')));
+
+    // ---------- Router ----------
+    function routeFromURL(){
+      const url = new URL(location.href);
+      const slug = url.searchParams.get('org');
+      const view = url.searchParams.get('view') || 'explore';
+      const q = url.searchParams.get('search');
+      const scope = url.searchParams.get('scope') || 'all';
+      const sortParam = url.searchParams.get('sort');
+
+      if(slug){
+        const o = DATA.find(x=>x.slug===slug);
+        if(o){ $('#view-directory').classList.add('hidden'); $('#view-search').classList.add('hidden'); $('#view-detail').classList.remove('hidden'); renderDetail(o); return; }
+      }
+
+      if(q){
+        SEARCH_SORT = sortParam || 'relevance';
+        CURRENT_QUERY = q;
+        const sLbl = document.getElementById('srch-sort-label'); if(sLbl) sLbl.textContent = {relevance:'Relevance', az:'A → Z', za:'Z → A', popular:'Popular', verified:'Verified first'}[SEARCH_SORT];
+        $('#view-directory').classList.add('hidden');
+        $('#view-detail').classList.add('hidden');
+        $('#view-search').classList.remove('hidden');
+        setScope(scope);
+        renderSearchResults(q, scope);
+        return;
+      }
+
+      VIEW_MODE = ['explore','orgs','businesses','projects','events'].includes(view) ? view : 'explore';
+      DIR_SORT = sortParam || 'popular';
+      updateDirSortLabels();
+      setActiveSidebar(VIEW_MODE);
+      showDirectory();
+      applyFiltersAndRender();
+    }
+
+    // Intercept sidebar links for SPA nav
+    $$('[data-route]').forEach(a=>{
+      a.addEventListener('click', (e)=>{ e.preventDefault(); navigateToView(a.getAttribute('data-route')); });
+    });
+
+    // ---------- Load data ----------
+    async function loadData(){
+      showSkeletons('orgs-grid'); showSkeletons('biz-grid'); showSkeletons('projects-grid'); showSkeletons('events-grid');
+      try{
+        const r = await fetch(API_URL,{headers:{Accept:'application/json'}});
+        const arr = await r.json();
+        DATA = (Array.isArray(arr)?arr:[]).map(normalize).filter(Boolean);
+      }catch(e){ console.error(e); DATA=[]; }
+      routeFromURL();
+      setScope('all'); // initialize both pills
+    }
+    window.addEventListener('popstate', routeFromURL);
+    loadData();
+  </script>
+</body>
+</html>
