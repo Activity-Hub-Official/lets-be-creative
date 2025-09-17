@@ -6,33 +6,6 @@
   <title>Activity Hub – Explore (v25)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <script src="https://cdn.tailwindcss.com">
-
-// --- Dynamic Navbar Label & Icon ---
-function updateNavbarContext(ctx){
-  // ctx: { type: 'explore'|'orgs'|'businesses'|'projects'|'events'|'detail', kind?: 'org'|'business'|'project' }
-  const labelEl = document.getElementById('nav-label');
-  const iconEl  = document.getElementById('nav-icon');
-  if(!labelEl || !iconEl) return;
-  const MAP = {
-    explore:   { label: 'Explore',      icon: 'fa-compass' },
-    orgs:      { label: 'Organizations',icon: 'fa-users' },
-    businesses:{ label: 'Businesses',   icon: 'fa-briefcase' },
-    projects:  { label: 'Projects',     icon: 'fa-diagram-project' },
-    events:    { label: 'Events',       icon: 'fa-calendar-days' },
-    detail_org:{ label: 'Organizations',icon: 'fa-users' },
-    detail_business:{ label: 'Businesses',icon: 'fa-briefcase' },
-    detail_project:{ label: 'Projects', icon: 'fa-diagram-project' },
-  };
-  let key = ctx.type;
-  if(ctx.type==='detail'){
-    key = ctx.kind==='business' ? 'detail_business' : (ctx.kind==='project' ? 'detail_project' : 'detail_org');
-  }
-  const meta = MAP[key] || MAP.explore;
-  labelEl.textContent = meta.label;
-  // replace just the icon class after 'fa-solid '
-  iconEl.className = iconEl.className.replace(/fa-solid\s+fa-[^\s]+/, 'fa-solid ' + meta.icon);
-}
-
 // --- Prevent pinch/tap zoom (fallback for browsers that ignore viewport flags) ---
 ['gesturestart','gesturechange','gestureend'].forEach(evt => {
   document.addEventListener(evt, function(e){ e.preventDefault(); }, { passive: false });
@@ -49,16 +22,6 @@ document.addEventListener('touchend', function(e){
   __lastTouchEnd = now;
 }, { passive: false });
 
-
-// Fallback: set initial navbar context from URL on load
-document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const u = new URL(location.href);
-    const view = u.searchParams.get('view') || 'explore';
-    const scope = u.searchParams.get('scope') || (typeof searchScope!=='undefined' ? searchScope : 'all');
-    updateNavbarContext({ type: (view==='explore' || scope==='all') ? 'explore' : scope });
-  } catch(e) {}
-});
 </script>
   <script>
     tailwind.config = {
@@ -165,7 +128,7 @@ input, textarea, select { font-size: 16px; }
           <div class="flex items-center gap-3">
             <button id="open-sidebar-btn" class="p-2 rounded-md hover:bg-gray-100 lg:hidden" aria-label="Open sidebar"><i class="fa-solid fa-bars text-[20px]"></i></button>
             <div class="w-8 h-8 grid place-items-center rounded-lg ah-grad text-white font-bold lg:hidden">AH</div>
-            <div class="hidden lg:flex items-center gap-2 text-lg font-semibold"><i id="nav-icon" class="fa-solid fa-compass"></i> <span id="nav-label">Explore</span></div>
+            <div class="hidden lg:flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-compass text-[18px] text-ah-600"></i> Explore</div>
           </div>
 
           <!-- SEARCH + MENU (desktop) -->
@@ -647,7 +610,6 @@ input, textarea, select { font-size: 16px; }
     }
 
     function renderDetail(o){
-      updateNavbarContext({type: "detail", kind: o.kind});
       document.title = `${o.name} — Activity Hub`;
       const logo = $('#d_logo'); const ph = $('#d_fallback');
       const showFallback = ()=>{ logo.classList.add('hidden'); ph.classList.remove('hidden'); const c=colorsFor(o.name); ph.style.background=c.bg; ph.style.color=c.fg; ph.textContent=initials(o.name); };
@@ -802,7 +764,6 @@ input, textarea, select { font-size: 16px; }
     }
 
     function showDirectory(){
-      updateNavbarContext({type: (typeof searchScope!=="undefined" && searchScope) ? searchScope : "explore"});
       $('#view-detail').classList.add('hidden');
       $('#view-search').classList.add('hidden');
       $('#view-directory').classList.remove('hidden');
@@ -1065,7 +1026,6 @@ input, textarea, select { font-size: 16px; }
       if (clearBtnScope) clearBtnScope.addEventListener('click', (e)=>{ e.stopPropagation(); setScope('all'); mRenderMenu(); mSearchInput && mSearchInput.focus(); });
     }
     function setScope(scope){
-      updateNavbarContext({type: scope || "explore"});
       searchScope = scope;
       $$('.search-tab').forEach(t=>{
         t.classList.remove('font-medium','bg-gray-100');
