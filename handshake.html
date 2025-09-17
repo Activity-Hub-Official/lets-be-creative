@@ -2,10 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Activity Hub – Explore (v25)</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com">
+
+// --- Dynamic Navbar Label & Icon ---
+function updateNavbarContext(ctx){
+  // ctx: { type: 'explore'|'orgs'|'businesses'|'projects'|'events'|'detail', kind?: 'org'|'business'|'project' }
+  const labelEl = document.getElementById('nav-label');
+  const iconEl  = document.getElementById('nav-icon');
+  if(!labelEl || !iconEl) return;
+  const MAP = {
+    explore:   { label: 'Explore',      icon: 'fa-compass' },
+    orgs:      { label: 'Organizations',icon: 'fa-users' },
+    businesses:{ label: 'Businesses',   icon: 'fa-briefcase' },
+    projects:  { label: 'Projects',     icon: 'fa-diagram-project' },
+    events:    { label: 'Events',       icon: 'fa-calendar-days' },
+    detail_org:{ label: 'Organizations',icon: 'fa-users' },
+    detail_business:{ label: 'Businesses',icon: 'fa-briefcase' },
+    detail_project:{ label: 'Projects', icon: 'fa-diagram-project' },
+  };
+  let key = ctx.type;
+  if(ctx.type==='detail'){
+    key = ctx.kind==='business' ? 'detail_business' : (ctx.kind==='project' ? 'detail_project' : 'detail_org');
+  }
+  const meta = MAP[key] || MAP.explore;
+  labelEl.textContent = meta.label;
+  // replace just the icon class after 'fa-solid '
+  iconEl.className = iconEl.className.replace(/fa-solid\s+fa-[^\s]+/, 'fa-solid ' + meta.icon);
+}
+
+// --- Prevent pinch/tap zoom (fallback for browsers that ignore viewport flags) ---
+['gesturestart','gesturechange','gestureend'].forEach(evt => {
+  document.addEventListener(evt, function(e){ e.preventDefault(); }, { passive: false });
+});
+// Prevent Ctrl/Cmd + wheel zoom
+document.addEventListener('wheel', function(e){
+  if (e.ctrlKey) { e.preventDefault(); }
+}, { passive: false });
+// Prevent double-tap to zoom (iOS fallback)
+let __lastTouchEnd = 0;
+document.addEventListener('touchend', function(e){
+  const now = Date.now();
+  if (now - __lastTouchEnd <= 350) { e.preventDefault(); }
+  __lastTouchEnd = now;
+}, { passive: false });
+
+
+// Fallback: set initial navbar context from URL on load
+document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const u = new URL(location.href);
+    const view = u.searchParams.get('view') || 'explore';
+    const scope = u.searchParams.get('scope') || (typeof searchScope!=='undefined' ? searchScope : 'all');
+    updateNavbarContext({ type: (view==='explore' || scope==='all') ? 'explore' : scope });
+  } catch(e) {}
+});
+</script>
   <script>
     tailwind.config = {
       theme: {
@@ -32,7 +86,20 @@
     .search-badge{font-size:11px;border:1px solid rgb(229 231 235);background:#f8fafc;border-radius:9999px;padding:.125rem .5rem}
     .menu{position:absolute;right:0;top:100%;margin-top:.5rem;min-width:12rem;z-index:60}
     .menu-item{display:block;width:100%;text-align:left}
-  </style>
+  
+/* --- Scroll & Zoom Controls --- */
+html, body { height: 100%; overscroll-behavior: none; }
+body { touch-action: manipulation; } /* reduces double-tap zoom on many browsers */
+#app, #root, main, .page-root, .site-root {
+  height: 100vh; 
+  overflow: auto;
+  overscroll-behavior: contain; /* prevent viewport rubber-banding when inner scroll hits edges */
+  -webkit-overflow-scrolling: touch; /* smooth scrolling on iOS */
+}
+/* Avoid input-focus zoom on iOS by keeping font-size >=16px */
+input, textarea, select { font-size: 16px; }
+
+</style>
 </head>
 <body class="min-h-screen bg-gray-50 text-gray-900 overflow-x-hidden">
   <div class="flex w-full">
@@ -98,7 +165,7 @@
           <div class="flex items-center gap-3">
             <button id="open-sidebar-btn" class="p-2 rounded-md hover:bg-gray-100 lg:hidden" aria-label="Open sidebar"><i class="fa-solid fa-bars text-[20px]"></i></button>
             <div class="w-8 h-8 grid place-items-center rounded-lg ah-grad text-white font-bold lg:hidden">AH</div>
-            <div class="hidden lg:flex items-center gap-2 text-lg font-semibold"><i class="fa-solid fa-compass text-[18px] text-ah-600"></i> Explore</div>
+            <div class="hidden lg:flex items-center gap-2 text-lg font-semibold"><i id="nav-icon" class="fa-solid fa-compass"></i> <span id="nav-label">Explore</span></div>
           </div>
 
           <!-- SEARCH + MENU (desktop) -->
@@ -420,6 +487,14 @@
   <!-- ====== JS ====== -->
   <script>
     const API_URL = "https://sheet2api.com/v1/ubMLioGAT8Gm/final-data";
+    
+    // ---- Logo fit mode toggle ----
+    // Choose 'contain' (no crop) or 'cover' (fills square, may crop edges)
+    const LOGO_MODE = 'cover';
+    const __logoFitClass = LOGO_MODE === 'cover' ? 'object-cover' : 'object-contain';
+    const __logoPaddingClass = LOGO_MODE === 'cover' ? '' : 'p-1';
+    // --------------------------------
+    
     const PREVIEW_COUNT = 3;
     const RECENT_KEY = 'ah_recent_searches_v1';
 
@@ -519,10 +594,10 @@
         <a href="?org=${o.slug}" data-nav="${o.slug}"
            class="block rounded-xl border border-gray-200 bg-white p-4 shadow-card hover:shadow transition fade-in">
           <div class="flex items-start gap-3">
-            <div class="w-14 h-14 rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
-              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-1"
-                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
-              <div class="${hasLogo?'hidden':''} w-14 h-14 rounded-xl grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
+            <div class="w-14 h-14 shrink-0 flex-none overflow-hidden rounded-xl ring-1 ring-gray-200 bg-white grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full ${__logoFitClass} object-center ${__logoPaddingClass}"
+                 onerror="this.style.display=\'none\'; this.nextElementSibling.classList.remove(\'hidden\');">` : `<span class="hidden"></span>`}
+              <div class="${hasLogo?'hidden':''} w-full h-full grid place-items-center text-sm font-semibold" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
             </div>
             <div class="min-w-0">
               <h3 class="text-[15px] font-semibold tracking-tight truncate">${o.name}${verified}</h3>
@@ -544,10 +619,10 @@
         <a href="?org=${o.slug}" data-nav="${o.slug}"
            class="block rounded-xl border border-gray-200 bg-white p-4 shadow-card hover:shadow transition fade-in">
           <div class="flex items-start gap-3">
-            <div class="w-14 h-14 rounded-xl ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
-              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-1"
-                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
-              <div class="${hasLogo?'hidden':''} w-14 h-14 rounded-xl grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
+            <div class="w-14 h-14 shrink-0 flex-none overflow-hidden rounded-xl ring-1 ring-gray-200 bg-white grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full ${__logoFitClass} object-center ${__logoPaddingClass}"
+                 onerror="this.style.display=\'none\'; this.nextElementSibling.classList.remove(\'hidden\');">` : `<span class="hidden"></span>`}
+              <div class="${hasLogo?'hidden':''} w-full h-full grid place-items-center text-sm font-semibold" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
             </div>
             <div class="min-w-0 flex-1">
               <h3 class="text-[15px] font-semibold tracking-tight truncate">${o.name}${verified}</h3>
@@ -572,6 +647,7 @@
     }
 
     function renderDetail(o){
+      updateNavbarContext({type: "detail", kind: o.kind});
       document.title = `${o.name} — Activity Hub`;
       const logo = $('#d_logo'); const ph = $('#d_fallback');
       const showFallback = ()=>{ logo.classList.add('hidden'); ph.classList.remove('hidden'); const c=colorsFor(o.name); ph.style.background=c.bg; ph.style.color=c.fg; ph.textContent=initials(o.name); };
@@ -726,6 +802,7 @@
     }
 
     function showDirectory(){
+      updateNavbarContext({type: (typeof searchScope!=="undefined" && searchScope) ? searchScope : "explore"});
       $('#view-detail').classList.add('hidden');
       $('#view-search').classList.add('hidden');
       $('#view-directory').classList.remove('hidden');
@@ -780,9 +857,9 @@
       return `
         <a href="?org=${o.slug}" data-open="${o.slug}" role="option" class="search-item block px-3 py-2 hover:bg-gray-50" aria-selected="false">
           <div class="flex items-start gap-3">
-            <div class="w-9 h-9 rounded-lg ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
-              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full object-contain p-0.5"
-                 onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">` : `<span class="hidden"></span>`}
+            <div class="w-9 h-9 shrink-0 flex-none rounded-lg ring-1 ring-gray-200 bg-white overflow-hidden grid place-items-center">
+              ${hasLogo ? `<img src="${o.logo}" alt="${o.name} logo" class="w-full h-full ${__logoFitClass} object-center ${__logoPaddingClass}"
+                 onerror="this.style.display=\'none\'; this.nextElementSibling.classList.remove(\'hidden\');">` : `<span class="hidden"></span>`}
               <div class="${hasLogo?'hidden':''} w-9 h-9 rounded-lg grid place-items-center" style="background:${c.bg};color:${c.fg}">${initials(o.name)}</div>
             </div>
             <div class="min-w-0 flex-1">
@@ -825,7 +902,7 @@
       const popular = popularOrgList();
       const popSection = section('Popular organizations', popular);
       const recents = renderRecentsOnlyDesktop();
-      return popSection + recents;
+      return recents + popSection;
     }
     function openMenu(){ searchMenu.classList.remove('hidden'); searchbox.setAttribute('aria-expanded','true'); renderSearchMenu(); document.addEventListener('mousedown', outsideClose); document.addEventListener('keydown', handleKeys, true); }
     function closeMenu(){ searchMenu.classList.add('hidden'); searchbox.setAttribute('aria-expanded','false'); activeIndex=-1; currentItems=[]; resultsEl.innerHTML=''; document.removeEventListener('mousedown', outsideClose); document.removeEventListener('keydown', handleKeys, true); }
@@ -907,7 +984,7 @@
       const popular = popularOrgList();
       const popSection = section('Popular organizations', popular);
       const recents = renderRecentsOnlyMobile();
-      return popSection + recents;
+      return recents + popSection;
     }
     function mOpenMenu(){ if(!mMenu) return; mMenu.classList.remove('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','true'); mRenderMenu(); document.addEventListener('mousedown', mOutsideClose); document.addEventListener('touchstart', mOutsideClose, {passive:true}); }
     function mCloseMenu(){ if(!mMenu) return; mMenu.classList.add('hidden'); if(mSearchBox) mSearchBox.setAttribute('aria-expanded','false'); mActiveIndex=-1; mItems=[]; if(mResultsEl) mResultsEl.innerHTML=''; document.removeEventListener('mousedown', mOutsideClose); document.removeEventListener('touchstart', mOutsideClose); }
@@ -988,6 +1065,7 @@
       if (clearBtnScope) clearBtnScope.addEventListener('click', (e)=>{ e.stopPropagation(); setScope('all'); mRenderMenu(); mSearchInput && mSearchInput.focus(); });
     }
     function setScope(scope){
+      updateNavbarContext({type: scope || "explore"});
       searchScope = scope;
       $$('.search-tab').forEach(t=>{
         t.classList.remove('font-medium','bg-gray-100');
