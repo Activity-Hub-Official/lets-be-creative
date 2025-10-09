@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Activity Hub — Events</title>
+<style>
+  
+/* ---- Activity Hub visual alignment ---- */
+.container{max-width:1100px;margin:0 auto;padding:24px 16px;}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);}
+.controls{gap:10px}
+.controls input[type="search"], .controls select{
+  background:#f9fafb;border:1px solid var(--border);border-radius:9999px;
+  padding:10px 14px; box-shadow:0 1px 2px rgba(16,24,40,.03);
+}
+.controls select{padding-right:32px}
+.controls label{color:#374151;font-weight:500}
+.badge{background:var(--badge);border:1px solid var(--border);color:#111827}
+.card{background:var(--card);border:1px solid var(--border);box-shadow:var(--shadow);border-radius:20px}
+.card .title{color:#111827}
+.card .row{color:#374151}
+.btn{border-radius:10px}
+.btn.primary{background:var(--accent);border-color:transparent;color:#fff}
+.btn.primary[disabled]{opacity:.5}
+.grid{gap:16px}
+/* hover */
+.card:hover{transform:translateY(-1px);box-shadow:0 2px 6px rgba(16,24,40,.06), 0 10px 28px rgba(16,24,40,.08)}
+/* subtle chips for status/filters if present */
+.pill{background:#fff;border:1px solid var(--border);color:#111827;border-radius:9999px;padding:.375rem .75rem;box-shadow:0 1px 2px rgba(16,24,40,.03)}
+/* link accents */
+a{color:var(--accent)}
+/* body background */
+html,body{background:var(--bg)}
+
+:root{
+  --bg:#f9fafb;            /* gray-50 */
+  --panel:#ffffff;         /* white */
+  --card:#ffffff;          /* card bg */
+  --card2:#ffffff;
+  --text:#111827;          /* gray-900 */
+  --muted:#4b5563;         /* gray-600 */
+  --muted2:#6b7280;        /* gray-500/600 */
+  --accent:#2563eb;        /* AH blue */
+  --brand:#2563eb;
+  --badge:#f3f4f6;         /* gray-100 */
+  --border:#e5e7eb;        /* gray-200 */
+  --shadow:0 1px 2px rgba(16,24,40,.06), 0 8px 24px rgba(16,24,40,.06); /* shadow-card */
+  --radius: 16px;
+}
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font:14px/1.6 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, 'Apple Color Emoji', 'Segoe UI Emoji';margin:0 auto;padding:24px}
+  h1{margin:0 0 14px 0;font-size:20px}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .control{background:var(--panel);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:12px;outline:0;min-width:200px}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+  .card{grid-column:span 12;background:linear-gradient(180deg,var(--card) 0%,var(--card2) 100%);border:1px solid var(--border);border-radius:24px;overflow:hidden;box-shadow:var(--shadow)}
+  .media{position:relative;height:180px;background:#101113}
+  .media img{width:100%;height:100%;object-fit:cover;display:block}
+  .badge{position:absolute;left:12px;top:10px;background:rgba(32,33,36,.85);color:#fff;border:1px solid rgba(255,255,255,.15);padding:6px 10px;border-radius:999px;font-size:12px;backdrop-filter:blur(6px)}
+  .body{padding:14px 16px 16px 16px}
+  .title{margin:0 0 8px 0;font-weight:700;font-size:18px;letter-spacing:.2px}
+  .row{display:flex;align-items:center;gap:8px;color:var(--muted);margin:6px 0}
+  .line-1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reveal{max-height:0;opacity:0;overflow:hidden;transition:max-height .28s ease, opacity .2s ease;}
+  .card{transition:transform .18s ease, box-shadow .18s ease}
+  .card:hover{transform:translateY(-2px) scale(1.01); box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  .card:hover .reveal{max-height:220px;opacity:1}
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:linear-gradient(180deg,#2a59ff 0%,#244fe0 100%);color:#fff;font-weight:600;cursor:pointer}
+  .btn[disabled]{opacity:.6;cursor:default}
+  .row svg{width:16px;height:16px;opacity:.9;flex:0 0 16px}
+  .secondary{color:var(--muted2)}
+  .foot{margin-top:8px;color:var(--muted2)}
+  .line-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  @media(min-width:720px){ .card{grid-column:span 6} }
+  @media(min-width:1024px){ .card{grid-column:span 3} }
+</style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container" style="padding-top:20px;">
+    <h1>Events <span id="count" style="color:#9aa1ae;font-weight:600;font-size:12px;margin-left:8px"></span></h1>
+    <div class="toolbar">
+      <input class="control" id="search" placeholder="Search title, org, or location…">
+      <select class="control" id="attendance">
+        <option value="">Attendance: All</option>
+        <option value="RSVP">RSVP</option>
+        <option value="Walk-in">Walk-in</option>
+      </select>
+      <select class="control" id="status">
+        <option value="upcoming">Status: Upcoming</option>
+        <option value="past">Status: Past</option>
+        <option value="all" selected>Status: All</option>
+      </select>
+      <select class="control" id="sort">
+        <option value="date_asc">Sort: Date ↑</option>
+        <option value="date_desc">Sort: Date ↓</option>
+        <option value="title_asc">Sort: Title A→Z</option>
+      </select>
+    </div>
+    <div id="grid" class="grid"></div>
+  </div>
+
+<template id="card">
+  <article class="card">
+    <div class="media">
+      <img alt="Event poster">
+      <div class="badge" data-badge></div>
+    </div>
+    <div class="body">
+      <h3 class="title line-2" data-title></h3>
+      <div class="row"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v11a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 8H4v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-9ZM6 7h12V6H6v1Z"></path></svg>
+        <span data-datetime></span>
+      </div>
+      <div class="row"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 1 7 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 0 1 7-7Zm0 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"></path></svg>
+        <span class="line-2" data-location></span>
+      </div>
+      <div class="foot secondary" data-org></div>
+      <div class="reveal" data-reveal>
+        <div class="secondary" data-desc style="margin-top:6px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden"></div>
+        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn" target="_blank" rel="noopener" data-rsvp>RSVP</a>
+        </div>
+      </div>
+    </div>
+  </article>
+</template>
+
+<script>
+const API_URL = "https://sheet2api.com/v1/ubMLioGAT8Gm/event-data";
+const PLACEHOLDER_IMG = "https://i.imgur.com/ZtB6Uw3.png";
+
+const $ = s => document.querySelector(s);
+const grid = $("#grid");
+const tmpl = $("#card");
+
+function ci(s){ return (s??'').toString().trim().toLowerCase(); }
+function parseDT(dateStr, timeStr){
+  const d = (dateStr||'').trim(), t = (timeStr||'').trim();
+  const dt = new Date((d? d : '') + (t? (' ' + t) : ''));
+  return isNaN(dt) ? null : dt;
+}
+function fmtBadge(d){
+  if(!d) return "";
+  const now = new Date(); const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const evtDay = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((evtDay - today)/86400000);
+  if(diff === 0) return "Today";
+  if(diff === 1) return "Tomorrow";
+  return d.toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+}
+function fmtDateTime(start, end){
+  if(!start) return "";
+  const date = start.toLocaleDateString(undefined,{month:'short', day:'numeric'});
+  let time = start.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  if(end){ time += " • " + end.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+  return `${date}, ${time}`;
+}
+
+function normalizeRow(r){
+  const name = r["Event Name"] || r["Title"] || r["Name"] || "";
+  const org = r["Parent Name"] || r["Parent Organization Name"] || r["Org"] || "";
+  const date = r["Date"] || r["Start Date"] || "";
+  const startTime = r["Start Time"] || r["Time Start"] || r["Time"] || "";
+  const endTime = r["End Time"] || r["Time End"] || "";
+  const loc = r["Location"] || r["Venue"] || "";
+  const poster = r["Poster Image URL"] || r["Image"] || "";
+  const desc = r["Event Description"] || r["Description"] || "";
+  const attType = r["Attendance Type (RSVP or Walk-in)"] || r["Attendance Type"] || r["Attendance"] || "";
+  const rsvpLink = r["If RSVP is required, RSVP Link"] || r["RSVP Link"] || "";
+  const startAt = parseDT(date, startTime);
+  const endAt = parseDT(date, endTime) || (startAt ? new Date(startAt.getTime()+60*60*1000) : null);
+  return { name, org, date, startTime, endTime, loc, poster, desc, attType, rsvpLink, startAt, endAt };
+}
+
+function render(items){
+  const countEl = document.getElementById('count'); if (countEl) countEl.textContent = `(${items.length})`;
+  grid.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for(const o of items){
+    const node = tmpl.content.cloneNode(true);
+    const img = node.querySelector("img");
+    img.src = o.poster || PLACEHOLDER_IMG;
+    img.alt = o.name || "Event poster";
+    img.onerror = (e)=>{ e.currentTarget.onerror=null; e.currentTarget.src=PLACEHOLDER_IMG; };
+
+    node.querySelector("[data-badge]").textContent = fmtBadge(o.startAt) || "";
+    node.querySelector("[data-title]").textContent = o.name || "Untitled event";
+    node.querySelector("[data-datetime]").textContent = fmtDateTime(o.startAt, o.endAt);
+    const locEl = node.querySelector("[data-location]");
+    locEl.textContent = o.loc || "TBA";
+    locEl.classList.add("line-1");
+    node.querySelector("[data-org]").textContent = o.org || "";
+    node.querySelector("[data-desc]").textContent = o.desc || "";
+    const rsvpBtn = node.querySelector("[data-rsvp]");
+    const isRSVP = (o.attType||"").toLowerCase()==="rsvp" && (o.rsvpLink||"").trim()!=="";
+    if(isRSVP){ rsvpBtn.href = o.rsvpLink; rsvpBtn.removeAttribute("disabled"); }
+    else { rsvpBtn.setAttribute("disabled","true"); rsvpBtn.href = "#"; }
+    frag.appendChild(node);
+  }
+  grid.appendChild(frag);
+}
+
+let __autoSwitched = false;
+function applyFilters(rows){
+  const q = ci($("#search").value);
+  const att = $("#attendance").value;
+  const status = $("#status").value;
+  const sort = $("#sort").value;
+
+  let list = rows.filter(r => {
+    const hay = ci([r.name, r.org, r.loc].filter(Boolean).join(" "));
+    const passQ = q ? hay.includes(q) : true;
+    const passAtt = att ? ci(r["Attendance Type (RSVP or Walk-in)"]) === ci(att) : true;
+    const past = r.endAt ? r.endAt.getTime() < Date.now() : (r.startAt ? r.startAt.getTime() < Date.now() : false);
+    const passStatus = status==="all" ? true : (status==="past" ? past : !past);
+    return passQ && passAtt && passStatus;
+  });
+
+  if(sort === "date_asc"){
+    list.sort((a,b)=>(a.startAt?.getTime()||0)-(b.startAt?.getTime()||0));
+  } else if (sort === "date_desc"){
+    list.sort((a,b)=>(b.startAt?.getTime()||0)-(a.startAt?.getTime()||0));
+  } else {
+    list.sort((a,b)=> ci(a.name).localeCompare(ci(b.name)));
+  }
+
+  if (list.length === 0 && !__autoSwitched) {
+    const sel = document.getElementById('status');
+    if (sel && sel.value !== 'all') { sel.value = 'all'; __autoSwitched = true; return applyFilters(rows); }
+  }
+  render(list);
+}
+
+(async function init(){
+  try{
+    const res = await fetch(API_URL, { cache: 'no-store' });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const raw = await res.json();
+    const rows = (Array.isArray(raw)? raw : (raw?.data||[])).map(normalizeRow);
+    window.__rows = rows;
+    applyFilters(rows);
+    ["search","attendance","status","sort"].forEach(id=>{
+      document.getElementById(id).addEventListener(id==="search"?"input":"change", ()=>applyFilters(rows));
+    });
+  }catch(err){
+    console.error(err);
+    grid.innerHTML = '<div style="grid-column:1/-1;color:#bbb;border:1px dashed #333;border-radius:12px;padding:20px;text-align:center">Couldn\'t load events from API.</div>';
+  }
+})();
+</script>
+</body>
+</html>
